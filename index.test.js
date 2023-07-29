@@ -1,24 +1,44 @@
-const wait = require('./wait');
-const process = require('process');
-const cp = require('child_process');
+const fs = require('fs');
+const core = require('@actions/core');
 const path = require('path');
+const run = require('./index');
+const mockFs = require('mock-fs');
 
-test('throws invalid number', async () => {
-  await expect(wait('foo')).rejects.toThrow('milliseconds not a number');
+jest.mock('@actions/core');
+
+describe('Create Terraform Backend File', () => {
+  beforeEach(() => {
+    mockFs({
+      '/github/workspace': {
+        'existing_directory': {}
+      }
+    });
+
+    process.env.GITHUB_WORKSPACE = '/github/workspace';
+
+    core.getInput.mockReturnValueOnce('my-bucket');
+    core.getInput.mockReturnValueOnce('existing_directory');
+  });
+
+  afterEach(() => {
+    mockFs.restore();
+  });
+
+  it('creates a .tf file', async () => {
+    await run();
+    const filePath = path.join(process.env.GITHUB_WORKSPACE, 'existing_directory', 'backend.tf');
+    expect(fs.existsSync(filePath)).toBe(true);
+  });
+
+  it('writes correct content to .tf file', async () => {
+    await run();
+    const filePath = path.join(process.env.GITHUB_WORKSPACE, 'existing_directory', 'backend.tf');
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+
+    expect(fileContent).toEqual(`terraform {
+  backend "gcs" {
+    bucket = "my-bucket"
+  }
+}`);
+  });
 });
-
-test('wait 500 ms', async () => {
-  const start = new Date();
-  await wait(500);
-  const end = new Date();
-  var delta = Math.abs(end - start);
-  expect(delta).toBeGreaterThanOrEqual(500);
-});
-
-// shows how the runner will run a javascript action with env / stdout protocol
-test('test runs', () => {
-  process.env['INPUT_MILLISECONDS'] = 100;
-  const ip = path.join(__dirname, 'index.js');
-  const result = cp.execSync(`node ${ip}`, {env: process.env}).toString();
-  console.log(result);
-})

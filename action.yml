@@ -1,13 +1,12 @@
-name: 'Wait'
-description: 'Wait a designated number of milliseconds'
+name: 'Create Terraform Backend File'
+description: 'Creates a .tf file for Terraform backend configuration'
 inputs:
-  milliseconds:  # id of input
-    description: 'number of milliseconds to wait'
+  bucketName:
+    description: 'GCP bucket name'
     required: true
-    default: '1000'
-outputs:
-  time: # output will be available to future steps
-    description: 'The current time after waiting'
+  filePath:
+    description: 'Path to save backend.tf file'
+    required: true
 runs:
   using: 'node16'
   main: 'dist/index.js'

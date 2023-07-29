@@ -1,21 +1,26 @@
+const fs = require('fs');
 const core = require('@actions/core');
-const wait = require('./wait');
+const path = require('path');
 
-
-// most @actions toolkit packages have async methods
 async function run() {
   try {
-    const ms = core.getInput('milliseconds');
-    core.info(`Waiting ${ms} milliseconds ...`);
-
-    core.debug((new Date()).toTimeString()); // debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
-    await wait(parseInt(ms));
-    core.info((new Date()).toTimeString());
-
-    core.setOutput('time', new Date().toTimeString());
-  } catch (error) {
+    const bucketName = core.getInput('bucketName');
+    const filePath = core.getInput('filePath');
+    const backendConfig = `terraform {
+  backend "gcs" {
+    bucket = "${bucketName}"
+  }
+}`;
+    const fullFilePath = path.join(process.env.GITHUB_WORKSPACE, filePath, 'backend.tf');
+    fs.writeFileSync(fullFilePath, backendConfig);
+  }
+  catch (error) {
     core.setFailed(error.message);
   }
 }
 
 run();
+
+module.exports = run;
+
+
